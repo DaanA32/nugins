@@ -15,19 +15,21 @@ export def git_commit [
 	name: string,
 	message: string,
 
-	--rm,
+	paths?: list<path>
 ] {
-	let path = $name | into filepath
+	let file = $name | into filepath
 
 	cd $env.NUPASS.REPOSITORY
 
-	if $rm {
-		git rm $path
-	} else {
+	for path in ($paths | append $file) {
 		git add $path
 	}
 
 	git commit -m $"($name): ($message)"
+}
+
+export def git_push [] {
+	cd $env.NUPASS.REPOSITORY
 	git push
 }
 

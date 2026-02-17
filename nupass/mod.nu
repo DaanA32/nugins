@@ -4,11 +4,17 @@ use util.nu *
 export def main [
 	--print (-p)	# Print the secret instead of copying it
 	--output (-o)	# Pipe the secret to the stdout
+
+	secret?: string@secrets	# Secret name.  If omitted, can be selected interactively
 ] {
 	cd $env.NUPASS.REPOSITORY
 
-	let selection = select secret
-	let path = $selection | into filepath
+	let secret = if $secret != null {
+		$secret
+	} else {
+		select secret
+	}
+	let path = $secret | into filepath
 
 	print $"Getting (ansi yellow)(
 		$path
@@ -81,10 +87,10 @@ export def add [
 
 	let tmp = $"($path).tmp"
 	mkdir ($path | path dirname)
-	^$env.EDITOR tmp
-	open tmp | encrypt | save $path --force
+	^$env.EDITOR $tmp
+	open $tmp | encrypt | save $path --force
 
-	rm tmp
+	rm $tmp
 
 	git_commit $name "add secret"
 }
@@ -116,7 +122,8 @@ export def delete [
 
 	check_secret_name_exists $path (metadata $name).span
 
-	git_commit --rm $name "delete secret"
+	rm --permanent $path
+	git_commit $name "delete secret"
 }
 
 # Move an existing secret to another path.
@@ -135,5 +142,10 @@ export def move [
 	mkdir ($new_path | path dirname)
 	mv --force $old_path $new_path
 
-	git_commit $new_name $"rename from ($old_name)"
+	git_commit $new_name $"rename from ($old_name)" [$old_path]
+}
+
+# Synchronize the secrets git repository with the upstream.
+export def sync [] {
+	git_push
 }
